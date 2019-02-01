@@ -1,6 +1,7 @@
 <template>
   <div id="wrapper">
     <main>
+      <h1>{{ project.project_name }}</h1>
       <div>Import your script (Final Draft .fdx file)</div>
       <div><button @click="openFile">Open</button></div>
       <router-link :to="{ name: 'landing-page', params: {}}">Projects</router-link>
@@ -24,12 +25,19 @@
     name: 'project-page',
     data () {
       return {
+        id: this.$route.params.id,
+        project: {},
         debugText: "",
         content: null
       }
     },
     mounted: function () {
       //this.$db.insert({test: 234234})
+      var vm = this
+      vm.$db.find({_id: vm.id }).exec(function (err, docs) {
+        vm.project = docs[0]
+      });
+
       this.parseFile(["/Users/giv/Desktop/dig.fdx"])
       window.addEventListener('mouseup', this.onMouseup)
     },
