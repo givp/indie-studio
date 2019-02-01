@@ -3,6 +3,7 @@
     <main>
       <div>Import your script (Final Draft .fdx file)</div>
       <div><button @click="openFile">Open</button></div>
+      <router-link :to="{ name: 'landing-page', params: {}}">Projects</router-link>
 
       <div class="scriptContent" v-if="content">
         <div v-for="(item, index) in content">
@@ -29,12 +30,6 @@
     },
     mounted: function () {
       //this.$db.insert({test: 234234})
-      this.$db.find({}, function (err, docs) {
-        // docs is an array containing documents Mars, Earth, Jupiter
-        // If no document is found, docs is equal to []
-        console.log(docs)
-      });
-
       this.parseFile(["/Users/giv/Desktop/dig.fdx"])
       window.addEventListener('mouseup', this.onMouseup)
     },
@@ -52,6 +47,10 @@
       parseFile(paths) {
         var vm = this
 
+        if (!paths) {
+          return
+        }
+
         var xmlPath = paths[0]
         console.log(xmlPath)
         fs.readFile(xmlPath, 'utf-8', (err, data) => {
@@ -67,6 +66,10 @@
       },
       onMouseup () {
         const selection = window.getSelection()
+        if (!selection || selection.rangeCount < 1) {
+          return
+        }
+
         const selectionRange = selection.getRangeAt(0)
         const startNode = selectionRange.startContainer.parentNode
         const endNode = selectionRange.endContainer.parentNode

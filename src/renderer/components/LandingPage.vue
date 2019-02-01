@@ -2,7 +2,15 @@
   <div id="wrapper">
     <main>
       <h1>Landing</h1>
-      <router-link :to="{ name: 'project-page', params: {}}">Project</router-link>
+
+      <ul>
+        <li v-for="(project, index) in projects">
+          <router-link :to="{ name: 'project-page', params: {id: project._id}}">{{ project.project_name }}</router-link> {{ project.created_at | moment("from")}}
+        </li>
+      </ul>
+
+      <button @click="newProject()">New Project</button>
+
     </main>
   </div>
 </template>
@@ -12,14 +20,24 @@
     name: 'landing-page',
     data () {
       return {
-
+        projects: []
       }
     },
     mounted: function () {
-
+      this.loadProjects()
     },
     methods: {
-
+      loadProjects() {
+        var vm = this
+        vm.$db.find({}).sort({ created_at: -1 }).exec(function (err, docs) {
+          vm.projects = docs
+        });
+      },
+      newProject() {
+        var vm = this
+        vm.$db.insert({project_name: "My cool film", created_at: Date.now()})
+        vm.loadProjects()
+      }
     }
   }
 </script>

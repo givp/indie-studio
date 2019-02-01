@@ -11,6 +11,7 @@ if (!process.env.IS_WEB) Vue.use(require('vue-electron'))
 Vue.http = Vue.prototype.$http = axios
 Vue.config.productionTip = false
 Vue.prototype.$db = db
+Vue.use(require('vue-moment'));
 
 const options = { name: 'lodash' }
 Vue.use(VueLodash, options)
