@@ -28,7 +28,11 @@
       }
     },
     mounted: function () {
-      //this.parseFile(["/Users/giv/Desktop/dig.fdx"])
+      this.parseFile(["/Users/giv/Desktop/dig.fdx"])
+      window.addEventListener('mouseup', this.onMouseup)
+    },
+    beforeDestroy: function() {
+      window.removeEventListener('mouseup', this.onMouseup)
     },
     methods: {
       openFile() {
@@ -51,9 +55,32 @@
 
           parseString(data, function (err, result) {
             vm.content = result.FinalDraft.Content[0].Paragraph
-            console.log(vm.content)
           });
         });
+      },
+      onMouseup () {
+        const selection = window.getSelection()
+        const selectionRange = selection.getRangeAt(0)
+        const startNode = selectionRange.startContainer.parentNode
+        const endNode = selectionRange.endContainer.parentNode
+
+        if (selectionRange.startOffset == selectionRange.endOffset) {
+          return
+        }
+
+        if (startNode.className != "Action" && startNode.className != "Dialogue" && startNode.className != "Parenthetical") {
+          return
+        }
+
+        var selectedText = selectionRange.extractContents();
+        var span= document.createElement("span");
+        span.className = "highlight";
+        span.appendChild(selectedText);
+        selectionRange.insertNode(span);
+
+        //console.log(startNode.className)
+        //console.log(selection.toString())
+        selection.empty()
       }
     }
   }
@@ -111,5 +138,10 @@
   .Parenthetical {
     text-align: center;
     font-style: italic;
+  }
+
+  .highlight {
+    font-weight: bold;
+    color: rgb(202, 68, 176);
   }
 </style>
