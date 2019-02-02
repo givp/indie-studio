@@ -1,15 +1,28 @@
 <template>
   <div id="wrapper">
-    <main>
-      <h1>{{ project.project_name }}</h1>
-      <div>Import your script (Final Draft .fdx file)</div>
-      <div><button @click="openFile">Open</button></div>
-      <router-link :to="{ name: 'landing-page', params: {}}">Projects</router-link>
+    <div id="top_nav">Tagger > <router-link :to="{ name: 'landing-page', params: {}}">Projects</router-link> > {{ project.project_name }}</div>
 
+    <main>
+      <div v-if="project.project_name && !project.file">
+        <div>Import your script (Final Draft .fdx file)</div>
+        <div><button @click="openFile">Open</button></div>
+      </div>
       <div class="scriptContent" v-if="content">
-        <div v-for="(item, index) in content">
-          <div v-bind:class="item.$ && item.$.Type.replace(/ +/g, '')">{{ item.Text && item.Text[0] }}</div>
+        <div class="scriptInner">
+          <div v-for="(item, index) in content">
+            <div v-bind:class="item.$ && item.$.Type.replace(/ +/g, '')">{{ item.Text && item.Text[0] }}</div>
+          </div>
         </div>
+      </div>
+
+      <div class="scriptInfo" v-if="content">
+        <ul v-for="(item, index) in content">
+          <li v-if="item.$.Type && item.$.Type == 'Scene Heading'">
+            <div class="rowScene">
+              <div>{{ item.$.Number }} - {{ item.Text[0] }} - {{ item.SceneProperties[0].$.Length }}</div>
+            </div>
+          </li>
+        </ul>
       </div>
 
     </main>
@@ -17,9 +30,12 @@
 </template>
 
 <script>
+  // { "$": { "Type": "Scene Heading", "Number": "1" }, "SceneProperties": [ { "$": { "Length": "7/8", "Page": "1", "Title": "" } } ], "Text": [ "EXT. TOP OF HILL - DAY" ] }
   const { dialog } = require('electron').remote;
   var fs = require('fs');
   var parseString = require('xml2js').parseString;
+  import path from 'path'
+  import { remote } from 'electron'
 
   export default {
     name: 'project-page',
@@ -32,13 +48,15 @@
       }
     },
     mounted: function () {
-      //this.$db.insert({test: 234234})
       var vm = this
       vm.$db.find({_id: vm.id }).exec(function (err, docs) {
         vm.project = docs[0]
+        if (vm.project.file) {
+          vm.displayFile()
+        }
       });
 
-      this.parseFile(["/Users/giv/Desktop/dig.fdx"])
+      //this.parseFile(["/Users/giv/Desktop/dig.fdx"])
       window.addEventListener('mouseup', this.onMouseup)
     },
     beforeDestroy: function() {
@@ -50,18 +68,31 @@
         dialog.showOpenDialog({ properties: ['openFile'], filters: [
           { name: 'Final Draft', extensions: ['fdx'] }
         ]
-        }, this.parseFile)
+        }, this.saveFile)
       },
-      parseFile(paths) {
+      saveFile(paths) {
         var vm = this
 
         if (!paths) {
           return
         }
 
-        var xmlPath = paths[0]
-        console.log(xmlPath)
-        fs.readFile(xmlPath, 'utf-8', (err, data) => {
+        var originalPath = paths[0]
+        var savePath = path.join(remote.app.getPath('userData'), vm.id + '.xml')
+
+        fs.copyFile(originalPath, savePath, function(e){
+          vm.$db.update({_id: vm.id}, { $set: { file: true } }, function(){
+            vm.project.file = true
+            vm.displayFile()
+          })
+        })
+
+      },
+      displayFile() {
+        var vm = this
+
+        var savePath = path.join(remote.app.getPath('userData'), vm.id + '.xml')
+        fs.readFile(savePath, 'utf-8', (err, data) => {
           if(err){
               alert("An error ocurred reading the file :" + err.message);
               return;
@@ -105,39 +136,49 @@
 </script>
 
 <style>
-  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro');
 
-  * {
-    box-sizing: border-box;
-    margin: 0;
+  li {
+    list-style-type: none;
     padding: 0;
+    margin: 0;
   }
 
-  body {
-    font-family: 'Source Sans Pro', sans-serif;
-    background-color: #e6e6e6;
-    font-color: #333;
-    padding: 50px;
+  .rowScene {
+    height: 40px;
+    border-top: 1px solid #50898A;
+    line-height: 40px;
+    font-size: 12px;
+    color: #4C5359;
   }
-
-  #wrapper {
-
-  }
-  main > div { flex-basis: 50%; }
 
   .scriptContent {
     font-family: "CourierPrime", monospace;
     font-size: 15px;
-    margin-top: 20px;
     font-weight: 500;
     background: #fff;
-    width: 750px;
+    max-width: 816px;
+    min-width: 600px;
     padding: 50px;
+    height: 100vh;
+    overflow-y: scroll;
+  }
+
+  .scriptInner {
+    margin-right: 86px;
+    margin-left: 86px;
+    padding-left: 0!important;
+    padding-right: 0!important;
+    max-width: 100%;
+    color: #333;
   }
 
   .SceneHeading {
     margin-top: 40px;
     font-weight: bold;
+  }
+
+  .scriptInfo {
+    margin-left: 20px;
   }
 
   .Action {
@@ -146,6 +187,11 @@
 
   .Character {
     text-align: center;
+    margin-top: 20px;
+  }
+
+  .Transition {
+    text-align: right;
     margin-top: 20px;
   }
 
@@ -161,5 +207,6 @@
   .highlight {
     font-weight: bold;
     color: rgb(202, 68, 176);
+    cursor: pointer;
   }
 </style>
