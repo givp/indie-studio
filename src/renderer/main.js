@@ -13,8 +13,7 @@ Vue.config.productionTip = false
 Vue.prototype.$db = db
 Vue.use(require('vue-moment'));
 
-const options = { name: 'lodash' }
-Vue.use(VueLodash, options)
+Vue.use(VueLodash)
 
 /* eslint-disable no-new */
 new Vue({

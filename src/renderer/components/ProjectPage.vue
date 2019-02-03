@@ -42,6 +42,7 @@
     data () {
       return {
         id: this.$route.params.id,
+        file_path: path.join(remote.app.getPath('userData'), this.$route.params.id + '.json'),
         project: {},
         debugText: "",
         content: null
@@ -56,7 +57,6 @@
         }
       });
 
-      //this.parseFile(["/Users/giv/Desktop/dig.fdx"])
       window.addEventListener('mouseup', this.onMouseup)
     },
     beforeDestroy: function() {
@@ -68,9 +68,9 @@
         dialog.showOpenDialog({ properties: ['openFile'], filters: [
           { name: 'Final Draft', extensions: ['fdx'] }
         ]
-        }, this.saveFile)
+        }, this.initFile)
       },
-      saveFile(paths) {
+      initFile(paths) {
         var vm = this
 
         if (!paths) {
@@ -78,32 +78,51 @@
         }
 
         var originalPath = paths[0]
-        var savePath = path.join(remote.app.getPath('userData'), vm.id + '.xml')
 
-        fs.copyFile(originalPath, savePath, function(e){
-          vm.$db.update({_id: vm.id}, { $set: { file: true } }, function(){
-            vm.project.file = true
-            vm.displayFile()
-          })
-        })
-
-      },
-      displayFile() {
-        var vm = this
-
-        var savePath = path.join(remote.app.getPath('userData'), vm.id + '.xml')
-        fs.readFile(savePath, 'utf-8', (err, data) => {
+        fs.readFile(originalPath, 'utf-8', (err, data) => {
           if(err){
               alert("An error ocurred reading the file :" + err.message);
               return;
           }
 
           parseString(data, function (err, result) {
-            vm.content = result.FinalDraft.Content[0].Paragraph
-          });
+            var xmlContent = result.FinalDraft.Content[0].Paragraph
+
+            fs.writeFile(vm.file_path, JSON.stringify(xmlContent, null, 2));
+
+            // update db
+            vm.$db.update({_id: vm.id}, { $set: { file: true } }, function(){
+              vm.project.file = true
+              vm.displayFile()
+            })
+
+          })
+
+        })
+
+      },
+      displayFile() {
+        var vm = this
+
+        fs.readFile(vm.file_path, 'utf-8', (err, data) => {
+          if(err){
+              alert("An error ocurred reading the file :" + err.message);
+              return;
+          }
+
+          vm.content = JSON.parse(data)
+
+        })
+      },
+      updateFile() {
+        var vm = this
+
+        fs.writeFile(vm.file_path, JSON.stringify(vm.content, null, 2), function() {
+          console.log('Data saved')
         });
       },
       onMouseup () {
+        var vm = this
         const selection = window.getSelection()
         if (!selection || selection.rangeCount < 1) {
           return
@@ -127,15 +146,17 @@
         span.appendChild(selectedText);
         selectionRange.insertNode(span);
 
-        //console.log(startNode.className)
-        //console.log(selection.toString())
+        console.log(startNode)
+        console.log(selection.toString())
         selection.empty()
+
+        vm.updateFile()
       }
     }
   }
 </script>
 
-<style>
+<style lang="scss">
 
   li {
     list-style-type: none;
