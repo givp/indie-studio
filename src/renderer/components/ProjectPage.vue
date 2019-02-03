@@ -14,6 +14,10 @@
         <input type="radio" id="highlight2" value="highlight2" v-model="picked">
         <label for="two">highlight2</label>
         <br>
+        <input type="radio" id="highlight3" value="highlight3" v-model="picked">
+        <label for="two">highlight3</label>
+        <br>
+
         <span>Picked: {{ picked }}</span>
         <div class="scriptInner">
           <div v-for="(item, index) in content">
@@ -77,6 +81,11 @@
       }));
 
       vm.highlighter.addClassApplier(rangyHighlight.createClassApplier("highlight2", {
+          ignoreWhiteSpace: true,
+          tagNames: ["span", "a"]
+      }));
+
+      vm.highlighter.addClassApplier(rangyHighlight.createClassApplier("highlight3", {
           ignoreWhiteSpace: true,
           tagNames: ["span", "a"]
       }));
@@ -185,6 +194,8 @@
           return
         }
 
+        var rt = rangyTextRange.getSelection();
+        rt.expand('word')
         vm.highlighter.highlightSelection(vm.picked);
 
         // update db
@@ -276,6 +287,12 @@
   .highlight2 {
     font-weight: bold;
     color: red;
+    cursor: pointer;
+  }
+
+  .highlight3 {
+    font-weight: bold;
+    color: yellow;
     cursor: pointer;
   }
 </style>
