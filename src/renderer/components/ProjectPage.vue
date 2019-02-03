@@ -8,6 +8,13 @@
         <div><button @click="openFile">Open</button></div>
       </div>
       <div class="scriptContent" v-if="content">
+        <input type="radio" id="highlight" value="highlight" v-model="picked">
+        <label for="one">highlight</label>
+        <br>
+        <input type="radio" id="highlight2" value="highlight2" v-model="picked">
+        <label for="two">highlight2</label>
+        <br>
+        <span>Picked: {{ picked }}</span>
         <div class="scriptInner">
           <div v-for="(item, index) in content">
             <div v-bind:class="item.$ && item.$.Type.replace(/ +/g, '')">{{ item.Text && item.Text[0] }}</div>
@@ -52,7 +59,8 @@
         project: {},
         debugText: "",
         highlighter: null,
-        content: null
+        content: null,
+        picked: "highlight"
       }
     },
     mounted: function () {
@@ -68,11 +76,15 @@
           tagNames: ["span", "a"]
       }));
 
+      vm.highlighter.addClassApplier(rangyHighlight.createClassApplier("highlight2", {
+          ignoreWhiteSpace: true,
+          tagNames: ["span", "a"]
+      }));
+
       vm.$db.find({_id: vm.id }).exec(function (err, docs) {
         vm.project = docs[0]
         if (vm.project.file) {
           vm.displayFile()
-          console.log(docs[0].tags)
         }
       });
 
@@ -134,12 +146,12 @@
 
           vm.content = JSON.parse(data)
 
-          console.log(vm.project.tags)
-
-          setTimeout(function(){
-            console.log("Loading")
-            vm.highlighter.deserialize(vm.project.tags)
-          }, 100)
+          if (vm.project.tags && vm.project.tags.length) {
+            setTimeout(function(){
+              console.log("Loading")
+              vm.highlighter.deserialize(vm.project.tags)
+            }, 100)
+          }
 
         })
       },
@@ -150,22 +162,6 @@
           console.log('Data saved')
         });
       },
-      tag(startNodeId, endNodeId, startOffset, endOffset, tagId) {
-        var vm = this
-
-        let selectionRange = document.createRange();
-
-        selectionRange.setStart(document.getElementById(startNodeId).firstChild, startOffset);
-        selectionRange.setEnd(document.getElementById(endNodeId).firstChild, endOffset);
-
-        var selectedText = selectionRange.extractContents();
-        var span= document.createElement("span");
-        span.className = "highlight";
-        span.id = tagId;
-        span.appendChild(selectedText);
-        selectionRange.insertNode(span);
-
-      },
       onMouseup () {
         var vm = this
 
@@ -174,32 +170,29 @@
           return
         }
 
-        vm.highlighter.highlightSelection("highlight");
+        const selectionRange = selection.getRangeAt(0)
+        const startNode = selectionRange.startContainer.parentNode
+        const endNode = selectionRange.endContainer.parentNode
+        const startOffset = selectionRange.startOffset
+        const endOffset = selectionRange.endOffset
+        const tagId = vm.generateId();
+
+        if (startOffset == endOffset) {
+          return
+        }
+
+        if (startNode.className != "Action" && startNode.className != "Dialogue" && startNode.className != "Parenthetical" && startNode.className != "Transition") {
+          return
+        }
+
+        vm.highlighter.highlightSelection(vm.picked);
 
         // update db
-        vm.$db.update({_id: vm.id}, { $set: { tags: vm.highlighter.serialize() } }, function(){
+        vm.$db.update({_id: vm.id}, { $set: { tags: vm.highlighter.serialize() } }, {}, function(){
+          console.log("saved")
         })
 
-        // const selectionRange = selection.getRangeAt(0)
-        // const startNode = selectionRange.startContainer.parentNode
-        // const endNode = selectionRange.endContainer.parentNode
-        // const startOffset = selectionRange.startOffset
-        // const endOffset = selectionRange.endOffset
-        // const tagId = vm.generateId();
-
-        // if (startOffset == endOffset) {
-        //   return
-        // }
-
-        // if (startNode.className != "Action" && startNode.className != "Dialogue" && startNode.className != "Parenthetical" && startNode.className != "Transition") {
-        //   return
-        // }
-
-        // console.log(selectionRange.startContainer.rootNode)
-
-        // vm.tag(startNode.id, endNode.id, startOffset, endOffset, tagId)
-
-        // //selection.empty()
+        selection.empty()
       }
     }
   }
@@ -277,6 +270,12 @@
   .highlight {
     font-weight: bold;
     color: rgb(202, 68, 176);
+    cursor: pointer;
+  }
+
+  .highlight2 {
+    font-weight: bold;
+    color: red;
     cursor: pointer;
   }
 </style>
