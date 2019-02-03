@@ -38,7 +38,7 @@
       },
       newProject() {
         var vm = this
-        vm.$db.insert({project_name: "My cool film", created_at: Date.now()})
+        vm.$db.insert({project_name: "My cool film", file: null, tags: null, created_at: Date.now()})
         vm.loadProjects()
       }
     }

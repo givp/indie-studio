@@ -125,7 +125,7 @@
             fs.writeFile(vm.file_path, JSON.stringify(xmlContent, null, 2));
 
             // update db
-            vm.$db.update({_id: vm.id}, { $set: { file: true } }, function(){
+            vm.$db.update({_id: vm.id}, { $set: { file: true } }, {}, function(err, numReplaced){
               vm.project.file = true
               vm.displayFile()
             })
@@ -188,8 +188,8 @@
         vm.highlighter.highlightSelection(vm.picked);
 
         // update db
-        vm.$db.update({_id: vm.id}, { $set: { tags: vm.highlighter.serialize() } }, {}, function(){
-          console.log("saved")
+        vm.$db.update({_id: vm.id}, { $set: { tags: vm.highlighter.serialize() } }, {}, function(err, numReplaced){
+          console.log("saved", numReplaced, err)
         })
 
         selection.empty()
