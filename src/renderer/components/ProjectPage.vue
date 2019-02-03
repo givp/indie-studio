@@ -36,6 +36,12 @@
   var parseString = require('xml2js').parseString;
   import path from 'path'
   import { remote } from 'electron'
+  const uuidv4 = require('uuid/v4');
+  import rangy from 'rangy';
+  import rangyHighlight from 'rangy/lib/rangy-highlighter';
+  import rangyClassApplier from 'rangy/lib/rangy-classapplier';
+  import rangyTextRange from 'rangy/lib/rangy-textrange';
+  import rangySerializer from 'rangy/lib/rangy-serializer';
 
   export default {
     name: 'project-page',
@@ -45,15 +51,28 @@
         file_path: path.join(remote.app.getPath('userData'), this.$route.params.id + '.json'),
         project: {},
         debugText: "",
+        highlighter: null,
         content: null
       }
     },
     mounted: function () {
       var vm = this
+
+      rangyHighlight.init();
+      rangy.init();
+
+      vm.highlighter = rangyHighlight.createHighlighter();
+
+      vm.highlighter.addClassApplier(rangyHighlight.createClassApplier("highlight", {
+          ignoreWhiteSpace: true,
+          tagNames: ["span", "a"]
+      }));
+
       vm.$db.find({_id: vm.id }).exec(function (err, docs) {
         vm.project = docs[0]
         if (vm.project.file) {
           vm.displayFile()
+          console.log(docs[0].tags)
         }
       });
 
@@ -63,6 +82,9 @@
       window.removeEventListener('mouseup', this.onMouseup)
     },
     methods: {
+      generateId() {
+        return uuidv4()
+      },
       openFile() {
         var vm = this
         dialog.showOpenDialog({ properties: ['openFile'], filters: [
@@ -112,6 +134,13 @@
 
           vm.content = JSON.parse(data)
 
+          console.log(vm.project.tags)
+
+          setTimeout(function(){
+            console.log("Loading")
+            vm.highlighter.deserialize(vm.project.tags)
+          }, 100)
+
         })
       },
       updateFile() {
@@ -121,36 +150,56 @@
           console.log('Data saved')
         });
       },
+      tag(startNodeId, endNodeId, startOffset, endOffset, tagId) {
+        var vm = this
+
+        let selectionRange = document.createRange();
+
+        selectionRange.setStart(document.getElementById(startNodeId).firstChild, startOffset);
+        selectionRange.setEnd(document.getElementById(endNodeId).firstChild, endOffset);
+
+        var selectedText = selectionRange.extractContents();
+        var span= document.createElement("span");
+        span.className = "highlight";
+        span.id = tagId;
+        span.appendChild(selectedText);
+        selectionRange.insertNode(span);
+
+      },
       onMouseup () {
         var vm = this
+
         const selection = window.getSelection()
         if (!selection || selection.rangeCount < 1) {
           return
         }
 
-        const selectionRange = selection.getRangeAt(0)
-        const startNode = selectionRange.startContainer.parentNode
-        const endNode = selectionRange.endContainer.parentNode
+        vm.highlighter.highlightSelection("highlight");
 
-        if (selectionRange.startOffset == selectionRange.endOffset) {
-          return
-        }
+        // update db
+        vm.$db.update({_id: vm.id}, { $set: { tags: vm.highlighter.serialize() } }, function(){
+        })
 
-        if (startNode.className != "Action" && startNode.className != "Dialogue" && startNode.className != "Parenthetical") {
-          return
-        }
+        // const selectionRange = selection.getRangeAt(0)
+        // const startNode = selectionRange.startContainer.parentNode
+        // const endNode = selectionRange.endContainer.parentNode
+        // const startOffset = selectionRange.startOffset
+        // const endOffset = selectionRange.endOffset
+        // const tagId = vm.generateId();
 
-        var selectedText = selectionRange.extractContents();
-        var span= document.createElement("span");
-        span.className = "highlight";
-        span.appendChild(selectedText);
-        selectionRange.insertNode(span);
+        // if (startOffset == endOffset) {
+        //   return
+        // }
 
-        console.log(startNode)
-        console.log(selection.toString())
-        selection.empty()
+        // if (startNode.className != "Action" && startNode.className != "Dialogue" && startNode.className != "Parenthetical" && startNode.className != "Transition") {
+        //   return
+        // }
 
-        vm.updateFile()
+        // console.log(selectionRange.startContainer.rootNode)
+
+        // vm.tag(startNode.id, endNode.id, startOffset, endOffset, tagId)
+
+        // //selection.empty()
       }
     }
   }
