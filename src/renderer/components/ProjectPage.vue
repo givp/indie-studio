@@ -2,28 +2,30 @@
   <div id="wrapper">
     <div id="top_nav">Home > <router-link :to="{ name: 'landing-page', params: {}}">Projects</router-link> > {{ project.project_name }}</div>
 
+    <div id="tag_menu" ref="tag_menu">
+        <button @click="doTag('a')">Props</button>
+        <br>
+        <button @click="doTag('b')">Stunts</button>
+        <br>
+        <button @click="doTag('c')">Sound FX</button>
+        <br>
+    </div>
+
     <main>
       <div v-if="project.project_name && !project.file">
         <div>Import your script (Final Draft .fdx file)</div>
         <div><button @click="openFile">Open</button></div>
       </div>
       <div class="scriptContent" v-if="content">
-        <input type="radio" value="a" v-model="picked">
-        <label for="a">a</label>
-        <br>
-        <input type="radio" value="b" v-model="picked">
-        <label for="b">b</label>
-        <br>
-        <input type="radio" value="c" v-model="picked">
-        <label for="c">c</label>
-        <br>
 
-        <span>Picked: {{ picked }}</span>
+        <!-- Main script -->
         <div class="scriptInner">
           <div v-for="(item, index) in content">
             <div v-bind:class="item.$ && item.$.Type.replace(/ +/g, '')">{{ item.Text && item.Text[0] }}</div>
           </div>
         </div>
+        <!-- End main script -->
+
       </div>
 
       <div class="scriptInfo" v-if="content">
@@ -53,6 +55,7 @@
   import rangyClassApplier from 'rangy/lib/rangy-classapplier';
   import rangyTextRange from 'rangy/lib/rangy-textrange';
   import rangySerializer from 'rangy/lib/rangy-serializer';
+  import tags from '../data/tags.js'
 
   export default {
     name: 'project-page',
@@ -64,14 +67,13 @@
         debugText: "",
         highlighter: null,
         content: null,
-        picked: "a"
+        tags: tags
       }
     },
     mounted: function () {
       var vm = this
 
       rangyHighlight.init();
-      rangy.init();
 
       vm.highlighter = rangyHighlight.createHighlighter();
 
@@ -82,9 +84,8 @@
               href: "#",
               onclick: function() {
                   var highlight = vm.highlighter.getHighlightForElement(this);
-                  if (window.confirm("Delete this note (ID " + highlight.id + ")?")) {
-                      vm.highlighter.removeHighlights( [highlight] );
-                      vm.saveTags();
+                  if (window.confirm("Delete this tag?")) {
+                      vm.deleteTag(highlight)
                   }
                   return false;
               }
@@ -168,7 +169,6 @@
 
           if (vm.project.tags && vm.project.tags.length) {
             setTimeout(function(){
-              console.log("Loading")
               vm.highlighter.deserialize(vm.project.tags)
             }, 500)
           }
@@ -186,8 +186,25 @@
         var vm = this
         // update db
         vm.$db.update({_id: vm.id}, { $set: { tags: vm.highlighter.serialize() } }, {}, function(err, numReplaced){
-          console.log("saved", numReplaced, err)
+          //
         })
+      },
+      deleteTag(highlight) {
+        var vm = this
+        vm.highlighter.removeHighlights( [highlight] );
+        vm.saveTags();
+      },
+      doTag(tag) {
+        var vm = this
+        const selection = window.getSelection()
+        vm.highlighter.highlightSelection(tag)
+        vm.saveTags()
+        selection.empty()
+        vm.closeTagsMenu()
+      },
+      closeTagsMenu() {
+        var tag_menu = document.getElementById("tag_menu")
+        tag_menu.style.display = 'none'
       },
       onMouseup () {
         var vm = this
@@ -203,6 +220,7 @@
         const startOffset = selectionRange.startOffset
         const endOffset = selectionRange.endOffset
         const tagId = vm.generateId();
+        const oRect = selectionRange.getBoundingClientRect();
 
         if (startOffset == endOffset) {
           return
@@ -212,11 +230,13 @@
           return
         }
 
+        var tag_menu = document.getElementById("tag_menu")
+        tag_menu.style.left = (oRect.left + (oRect.width/2)) - 100 + 'px';
+        tag_menu.style.top = oRect.top + 20 + 'px'
+        tag_menu.style.display = 'block'
+
         var rt = rangyTextRange.getSelection();
         rt.expand('word')
-        vm.highlighter.highlightSelection(vm.picked);
-        vm.saveTags()
-        selection.empty()
       }
     }
   }
@@ -307,5 +327,13 @@
     font-weight: bold;
     color: yellow;
     cursor: pointer;
+  }
+
+  #tag_menu {
+    background-color: #ccc;
+    width: 200px;
+    height: 300px;
+    position: absolute;
+    display: none;
   }
 </style>
