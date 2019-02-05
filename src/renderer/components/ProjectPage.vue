@@ -1,6 +1,6 @@
 <template>
   <div id="wrapper">
-    <div id="top_nav">Tagger > <router-link :to="{ name: 'landing-page', params: {}}">Projects</router-link> > {{ project.project_name }}</div>
+    <div id="top_nav">Home > <router-link :to="{ name: 'landing-page', params: {}}">Projects</router-link> > {{ project.project_name }}</div>
 
     <main>
       <div v-if="project.project_name && !project.file">
@@ -8,14 +8,14 @@
         <div><button @click="openFile">Open</button></div>
       </div>
       <div class="scriptContent" v-if="content">
-        <input type="radio" id="highlight" value="highlight" v-model="picked">
-        <label for="one">highlight</label>
+        <input type="radio" value="a" v-model="picked">
+        <label for="a">a</label>
         <br>
-        <input type="radio" id="highlight2" value="highlight2" v-model="picked">
-        <label for="two">highlight2</label>
+        <input type="radio" value="b" v-model="picked">
+        <label for="b">b</label>
         <br>
-        <input type="radio" id="highlight3" value="highlight3" v-model="picked">
-        <label for="two">highlight3</label>
+        <input type="radio" value="c" v-model="picked">
+        <label for="c">c</label>
         <br>
 
         <span>Picked: {{ picked }}</span>
@@ -64,7 +64,7 @@
         debugText: "",
         highlighter: null,
         content: null,
-        picked: "highlight"
+        picked: "a"
       }
     },
     mounted: function () {
@@ -75,17 +75,28 @@
 
       vm.highlighter = rangyHighlight.createHighlighter();
 
-      vm.highlighter.addClassApplier(rangyHighlight.createClassApplier("highlight", {
+      vm.highlighter.addClassApplier(rangyHighlight.createClassApplier("a", {
+          ignoreWhiteSpace: true,
+          tagNames: ["span", "a"],
+          elementProperties: {
+              href: "#",
+              onclick: function() {
+                  var highlight = vm.highlighter.getHighlightForElement(this);
+                  if (window.confirm("Delete this note (ID " + highlight.id + ")?")) {
+                      vm.highlighter.removeHighlights( [highlight] );
+                      vm.saveTags();
+                  }
+                  return false;
+              }
+          }
+      }));
+
+      vm.highlighter.addClassApplier(rangyHighlight.createClassApplier("b", {
           ignoreWhiteSpace: true,
           tagNames: ["span", "a"]
       }));
 
-      vm.highlighter.addClassApplier(rangyHighlight.createClassApplier("highlight2", {
-          ignoreWhiteSpace: true,
-          tagNames: ["span", "a"]
-      }));
-
-      vm.highlighter.addClassApplier(rangyHighlight.createClassApplier("highlight3", {
+      vm.highlighter.addClassApplier(rangyHighlight.createClassApplier("c", {
           ignoreWhiteSpace: true,
           tagNames: ["span", "a"]
       }));
@@ -159,7 +170,7 @@
             setTimeout(function(){
               console.log("Loading")
               vm.highlighter.deserialize(vm.project.tags)
-            }, 100)
+            }, 500)
           }
 
         })
@@ -170,6 +181,13 @@
         fs.writeFile(vm.file_path, JSON.stringify(vm.content, null, 2), function() {
           console.log('Data saved')
         });
+      },
+      saveTags() {
+        var vm = this
+        // update db
+        vm.$db.update({_id: vm.id}, { $set: { tags: vm.highlighter.serialize() } }, {}, function(err, numReplaced){
+          console.log("saved", numReplaced, err)
+        })
       },
       onMouseup () {
         var vm = this
@@ -197,12 +215,7 @@
         var rt = rangyTextRange.getSelection();
         rt.expand('word')
         vm.highlighter.highlightSelection(vm.picked);
-
-        // update db
-        vm.$db.update({_id: vm.id}, { $set: { tags: vm.highlighter.serialize() } }, {}, function(err, numReplaced){
-          console.log("saved", numReplaced, err)
-        })
-
+        vm.saveTags()
         selection.empty()
       }
     }
@@ -278,19 +291,19 @@
     font-style: italic;
   }
 
-  .highlight {
+  .a {
     font-weight: bold;
     color: rgb(202, 68, 176);
     cursor: pointer;
   }
 
-  .highlight2 {
+  .b {
     font-weight: bold;
     color: red;
     cursor: pointer;
   }
 
-  .highlight3 {
+  .c {
     font-weight: bold;
     color: yellow;
     cursor: pointer;

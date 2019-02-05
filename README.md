@@ -1,4 +1,4 @@
-# script-tagger
+# IndyStudio
 
 > An electron-vue project
 

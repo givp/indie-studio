@@ -6,7 +6,7 @@
 
 <script>
   export default {
-    name: 'script-tagger'
+    name: 'IndieStudio'
   }
 </script>
 

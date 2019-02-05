@@ -1,8 +1,8 @@
 {
-  "name": "script-tagger",
+  "name": "IndieStudio",
   "version": "0.0.1",
   "author": "Giv Parvaneh <giv@givp.org>",
-  "description": "An electron-vue project",
+  "description": "Script tagging App",
   "license": null,
   "main": "./dist/electron/main.js",
   "scripts": {
@@ -17,8 +17,8 @@
     "postinstall": ""
   },
   "build": {
-    "productName": "script-tagger",
-    "appId": "com.example.yourapp",
+    "productName": "IndieStudio",
+    "appId": "co.indiestudio.app",
     "directories": {
       "output": "build"
     },

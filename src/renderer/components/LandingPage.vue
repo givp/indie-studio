@@ -1,6 +1,6 @@
 <template>
   <div id="wrapper">
-    <div id="top_nav">Tagger > <router-link :to="{ name: 'landing-page', params: {}}">Projects</router-link></div>
+    <div id="top_nav">Home > <router-link :to="{ name: 'landing-page', params: {}}">Projects</router-link></div>
     <main>
 
       <div>
